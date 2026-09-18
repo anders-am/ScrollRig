@@ -186,6 +186,49 @@
     <button class="stop-link" id="btn-stop" type="button">Reset / Stop</button>
   </div>
 
+  <div id="cursor-section">
+    <div id="cursor-bar">
+      <span class="cursor-bar-left">
+        <span id="cursor-preview" aria-hidden="true"></span>
+        <span class="label">Cursor</span>
+      </span>
+      <span class="cursor-bar-right">
+        <label class="follow cursor-switch"><input type="checkbox" id="cur-enabled" /> <span id="cursor-state">Off</span></label>
+        <button id="cursor-gear" type="button" aria-expanded="false" aria-controls="cursor-drawer" aria-label="Cursor settings" title="Cursor settings">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+      </span>
+    </div>
+
+    <div id="cursor-drawer" class="hidden">
+      <div class="field">
+        <div class="field-head"><span class="label">Size</span><span class="unit">px</span></div>
+        <div class="opts" id="cur-size" data-value="10">
+          <button class="opt num active" data-value="10">10</button>
+          <button class="opt num" data-value="16">16</button>
+          <button class="opt num" data-value="24">24</button>
+          <input class="opt num custom" type="text" inputmode="numeric" placeholder="Custom" />
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-head"><span class="label">Style</span></div>
+        <div class="opts" id="cur-style" data-value="stroke">
+          <button class="opt active" data-value="stroke">Stroke</button>
+          <button class="opt" data-value="filled">Filled</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-head"><span class="label">Color</span></div>
+        <div class="color-input">
+          <input class="opt custom pos" id="cur-hex" type="text" spellcheck="false" value="#FFFFFF" />
+          <input type="color" id="cur-swatch" value="#FFFFFF" aria-label="Pick cursor color" />
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="stagger-modal" class="modal hidden">
     <div class="modal-card">
       <div class="section-label">Staggered scroll</div>

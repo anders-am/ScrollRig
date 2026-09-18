@@ -44,6 +44,9 @@ Sequence — build a shot out of steps: scroll to a position, scroll by a distan
 PRECISION
 A live scroll position readout updates with no lag, so you always know exactly where the page is. Keyboard shortcuts work globally, so you can set marks and trigger a run while your cursor is in the page rather than in the panel.
 
+CURSOR
+Optionally replace the page's mouse pointer with a simple circle while you record — set its size, colour and whether it is filled or stroked. It applies only to the page you are driving, and only while switched on, so nothing changes on your other tabs.
+
 PRIVACY
 ScrollRig has no servers, no analytics and no telemetry, and it makes no network requests. Your saved positions and sequences are stored locally in your own browser and never leave your computer.
 ```
@@ -67,7 +70,7 @@ English (United States)
 ### Single purpose description
 
 ```
-ScrollRig performs a single function: it scrolls a web page the user selects, smoothly and at a precisely controlled speed, distance and easing curve, so that the page can be captured cleanly with external screen-recording software.
+ScrollRig has a single purpose: preparing and driving a web page the user selects for clean screen recording. It scrolls the page smoothly at a precisely controlled speed, distance and easing curve, and optionally replaces the page's mouse cursor with a simple shape for a tidier capture. Both work on one page the user explicitly binds, so the page can be recorded cleanly with external screen-recording software.
 ```
 
 ### Permission justifications

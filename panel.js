@@ -98,7 +98,7 @@
     return { easing: rowEl.dataset.preset };
   }
 
-  ['qs-distance', 'qs-duration', 'qs-easing', 'qs-direction', 'cap-duration', 'cap-easing'].forEach((id) => {
+  ['qs-distance', 'qs-duration', 'qs-easing', 'qs-direction', 'cap-duration', 'cap-easing', 'cur-size', 'cur-style'].forEach((id) => {
     initOptionRow($(id));
   });
 
@@ -806,9 +806,106 @@
     chrome.runtime.sendMessage({ type: 'SET_AUTO_FOLLOW', value: e.target.checked }).catch(() => {});
   });
 
+  // ---------- Cursor ----------
+  // A global (not per-domain) preference. The panel is the only writer; it
+  // persists to storage and pings background, which pushes it to the bound tab.
+  const CURSOR_KEY = 'cursor.v1';
+  const CURSOR_DEFAULTS = { enabled: false, size: 10, stroke: 2, color: '#FFFFFF', filled: false };
+  let cursor = { ...CURSOR_DEFAULTS };
+  let lastGoodHex = CURSOR_DEFAULTS.color;
+
+  function setRowValue(rowEl, value) {
+    const btn = rowEl.querySelector(`button.opt[data-value="${value}"]`);
+    const custom = rowEl.querySelector('input.custom');
+    if (btn) {
+      rowEl.dataset.preset = value;
+      if (custom) custom.value = '';
+    } else if (custom) {
+      custom.value = value;
+    }
+    paintRow(rowEl);
+  }
+
+  function readCursorFromControls() {
+    const size = Math.max(4, Math.min(96, rowNumber($('cur-size'), 10)));
+    const filled = $('cur-style').dataset.preset === 'filled';
+    return { enabled: $('cur-enabled').checked, size, stroke: 2, color: lastGoodHex, filled };
+  }
+
+  function renderCursorBar() {
+    const p = $('cursor-preview');
+    p.style.borderColor = cursor.color;
+    p.style.background = cursor.filled ? cursor.color : 'none';
+    p.style.opacity = cursor.enabled ? '1' : '0.4';
+    $('cursor-state').textContent = cursor.enabled ? 'On' : 'Off';
+  }
+
+  async function commitCursor() {
+    cursor = readCursorFromControls();
+    await chrome.storage.local.set({ [CURSOR_KEY]: cursor });
+    chrome.runtime.sendMessage({ type: 'CURSOR_CHANGED' }).catch(() => {});
+    renderCursorBar();
+  }
+
+  async function loadCursorSettings() {
+    const data = await chrome.storage.local.get(CURSOR_KEY);
+    cursor = { ...CURSOR_DEFAULTS, ...(data[CURSOR_KEY] || {}) };
+    lastGoodHex = cursor.color;
+    $('cur-enabled').checked = cursor.enabled;
+    setRowValue($('cur-size'), String(cursor.size));
+    setRowValue($('cur-style'), cursor.filled ? 'filled' : 'stroke');
+    $('cur-hex').value = cursor.color;
+    $('cur-swatch').value = cursor.color;
+    renderCursorBar();
+  }
+
+  $('cursor-gear').addEventListener('click', () => {
+    const open = $('cursor-drawer').classList.toggle('hidden') === false;
+    $('cursor-gear').setAttribute('aria-expanded', String(open));
+  });
+
+  $('cur-enabled').addEventListener('change', commitCursor);
+
+  // These rows already repaint themselves via initOptionRow; our listeners run
+  // after, so dataset.preset / custom value are current by the time we commit.
+  ['cur-size', 'cur-style'].forEach((id) => {
+    const row = $(id);
+    row.addEventListener('click', (e) => { if (e.target.closest('button.opt')) commitCursor(); });
+    const custom = row.querySelector('input.custom');
+    if (custom) custom.addEventListener('input', commitCursor);
+  });
+
+  $('cur-hex').addEventListener('input', () => {
+    const raw = $('cur-hex').value.trim();
+    if (/^#?[0-9a-f]{6}$/i.test(raw)) {
+      const norm = '#' + raw.replace('#', '').toUpperCase();
+      $('cur-hex').classList.remove('invalid');
+      lastGoodHex = norm;
+      $('cur-swatch').value = norm;
+      commitCursor();
+    } else {
+      $('cur-hex').classList.add('invalid');
+    }
+  });
+
+  // Don't leave a broken hex on screen — snap back to the last value that parsed.
+  $('cur-hex').addEventListener('blur', () => {
+    $('cur-hex').value = lastGoodHex;
+    $('cur-hex').classList.remove('invalid');
+  });
+
+  $('cur-swatch').addEventListener('input', () => {
+    const v = $('cur-swatch').value.toUpperCase();
+    lastGoodHex = v;
+    $('cur-hex').value = v;
+    $('cur-hex').classList.remove('invalid');
+    commitCursor();
+  });
+
   // ---------- init ----------
 
   document.querySelectorAll('.opts[data-value]').forEach(paintRow);
+  loadCursorSettings();
   renderSequence();
   renderMarks();
   renderPresets();

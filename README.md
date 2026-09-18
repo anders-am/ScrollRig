@@ -62,6 +62,18 @@ Build a shot out of steps: **+ To** (scroll to a position), **+ Scroll** (scroll
 
 **Loop** repeats the sequence so you can tune the timing without re-triggering it. The speed dropdown (0.5× / 1× / 2×) previews fast and records at real speed. Save a sequence under **Presets**, and use **Export** / **Import** to move presets between machines or share them.
 
+### Cursor — replace the pointer on the page
+
+Open **Cursor** at the bottom of the panel to swap the page's pointer for a clean shape while you record — handy when the default arrow is distracting or off-brand in a case video.
+
+Tick **Replace cursor on page** to turn it on. The default is a 10px circle with a 2px stroke; set the **Size**, switch between **Stroke** and **Filled**, and pick a **Color** (type a hex or use the swatch). Changes apply live to the bound tab, and the small circle in the Cursor bar previews the current setting. Turn it off to hand the site its own cursors back.
+
+The cursor only applies to the tab you're driving, and only while it's on. A few things it can't reach:
+
+- **Content inside iframes** keeps the default cursor — embedded videos, maps and some CMS previews.
+- **Sites that draw their own custom cursor** (common on the smooth-scroll sites this is built for) will show theirs on top, so you may briefly see two.
+- If your **screen recorder is set to hide the cursor**, it hides this one too — the browser draws it as the real system cursor.
+
 ### Keyboard shortcuts
 
 Because the panel sits behind the browser window when you click into the page, the shortcuts work globally:

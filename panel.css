@@ -76,18 +76,47 @@ body { display: flex; flex-direction: column; }
   user-select: none;
 }
 
+/* Sliding on/off toggle: a pill track with a knob that slides across. */
 .follow input {
   appearance: none;
   -webkit-appearance: none;
-  width: 11px;
-  height: 11px;
+  position: relative;
+  width: 24px;
+  height: 13px;
   border: 1px solid var(--t40);
+  border-radius: 999px;
   background: none;
   cursor: pointer;
+  flex: 0 0 auto;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.follow input:checked { background: var(--fg); border-color: var(--fg); }
+.follow input::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  transform: translateY(-50%);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--t40);
+  transition: left 0.15s ease, background 0.15s ease;
+}
+
+.follow input:checked {
+  background: var(--fg);
+  border-color: var(--fg);
+}
+
+.follow input:checked::after {
+  left: calc(100% - 9px);
+  background: var(--bg);
+}
+
 .follow:hover { color: var(--fg); }
+.follow:hover input { border-color: var(--fg); }
+.follow:hover input:checked { border-color: var(--fg); }
 
 /* ── Scroll readout ─────────────────────────────────── */
 
@@ -575,3 +604,95 @@ input.opt.invalid { color: var(--warn); border-bottom-color: var(--warn); }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-thumb { background: var(--rule); }
 ::-webkit-scrollbar-track { background: transparent; }
+
+/* ── Cursor drawer ──────────────────────────────────── */
+
+#cursor-section {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--rule);
+}
+
+#cursor-bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  color: var(--t50);
+}
+
+.cursor-bar-left { display: flex; align-items: center; gap: 11px; }
+.cursor-bar-right { display: flex; align-items: center; gap: 14px; }
+
+/* The on/off toggle now lives in the bar, where the state label reads On/Off. */
+.cursor-switch { color: var(--t50); }
+.cursor-switch #cursor-state { min-width: 3ch; }
+
+/* Gear: opens and closes the settings drawer, independent of the on/off toggle. */
+#cursor-gear {
+  display: flex;
+  padding: 4px;
+  margin: -4px;
+  background: none;
+  border: none;
+  color: var(--t50);
+  cursor: pointer;
+  transition: transform 0.2s ease, color 0.15s ease;
+}
+#cursor-gear:hover { color: var(--fg); }
+#cursor-gear[aria-expanded="true"] { color: var(--fg); transform: rotate(60deg); }
+
+/* Live swatch — the bar doubles as the preview of the current cursor. */
+#cursor-preview {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  color: var(--t40);
+}
+
+#cursor-state {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  font-variant-numeric: tabular-nums;
+}
+
+#cursor-drawer {
+  padding: 4px 18px 20px;
+}
+#cursor-drawer.hidden { display: none; }
+
+/* Drawer fields are tighter than the tab fields and don't need bottom rules. */
+#cursor-drawer .field { padding: 18px 0; }
+#cursor-drawer .field:last-child { border-bottom: none; padding-bottom: 4px; }
+
+/* Color: hex field with the native picker sat at its right edge, mirroring
+   the crosshair composition in the position inputs. */
+.color-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 12ch;
+}
+.color-input input.pos {
+  width: 100%;
+  padding-right: 26px;
+  text-transform: uppercase;
+}
+.color-input input[type="color"] {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--t40);
+  background: none;
+  cursor: pointer;
+}
+.color-input input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+.color-input input[type="color"]::-webkit-color-swatch { border: none; }

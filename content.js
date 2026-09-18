@@ -23,6 +23,7 @@
   let activeCancel = null;
   let wheelWorks = null; // null = untested, true/false once calibrated
   let extensionContextDead = false;
+  let cursorStyleEl = null;
 
   // chrome.runtime.sendMessage THROWS synchronously (not a rejected promise)
   // once the extension reloads and orphans this injected copy of the script —
@@ -264,6 +265,48 @@
     return { type: 'SCROLL_COMPLETE', finalPosition: result.finalPosition, aborted: result.aborted };
   }
 
+  // ── Custom cursor ────────────────────────────────────────────────────────
+  // Drawn as a real CSS cursor from an inline SVG data URI, not a mousemove-
+  // following element: the compositor draws it with zero latency, so the
+  // recording never catches it trailing the pointer. Trade-off is SVG-only and
+  // a 128px browser cap — fine for a small circle. Do NOT "upgrade" this to a
+  // follower div; the latency is the whole reason it's done this way.
+  function cursorRule(settings) {
+    const size = Math.max(4, Math.min(96, Number(settings.size) || 10));
+    const stroke = Math.max(0, Number(settings.stroke) || 0);
+    const color = settings.color || '#FFFFFF';
+    // Canvas must exceed the circle by the stroke, or the stroke clips at the edge.
+    const canvas = size + stroke + 2;
+    const c = canvas / 2;
+    const r = size / 2 - (settings.filled ? 0 : stroke / 2);
+    const circle = settings.filled
+      ? `<circle cx="${c}" cy="${c}" r="${r}" fill="${color}"/>`
+      : `<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"/>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas}" height="${canvas}" viewBox="0 0 ${canvas} ${canvas}">${circle}</svg>`;
+    // '#' in the hex colour must be encoded or the data URI is truncated there.
+    const encoded = encodeURIComponent(svg).replace(/#/g, '%23');
+    const hot = Math.round(c);
+    // '*, *::before, *::after' + !important overrides the site's contextual
+    // cursors (pointer over links, text over inputs) — one cursor, always.
+    return `*, *::before, *::after { cursor: url("data:image/svg+xml,${encoded}") ${hot} ${hot}, auto !important; }`;
+  }
+
+  function applyCursor(settings) {
+    if (!settings || !settings.enabled) return clearCursor();
+    if (!cursorStyleEl) {
+      cursorStyleEl = document.createElement('style');
+      cursorStyleEl.id = '__scrollrig-cursor';
+      // documentElement, not body — survives frameworks that replace <body>.
+      document.documentElement.appendChild(cursorStyleEl);
+    }
+    cursorStyleEl.textContent = cursorRule(settings);
+  }
+
+  function clearCursor() {
+    if (cursorStyleEl) cursorStyleEl.remove();
+    cursorStyleEl = null;
+  }
+
   function onMessage(message, sender, sendResponse) {
     (async () => {
       switch (message.type) {
@@ -301,6 +344,11 @@
           sendResponse({ type: 'POSITION', position: window.scrollY });
           break;
         }
+        case 'SET_CURSOR': {
+          applyCursor(message.settings);
+          sendResponse({ type: 'CURSOR_SET' });
+          break;
+        }
         case 'PING': {
           sendResponse({ type: 'PONG', hostname: location.hostname, title: document.title });
           break;
@@ -335,6 +383,10 @@
   // since touching chrome.* throws once this context has been invalidated.
   window.__scrollRigTeardown = () => {
     abortActive();
+    // Remove the cursor override, or an uninstall/reload strands the <style>
+    // element on the page with no live extension to take it down — the user
+    // would have to reload every open tab to get their real cursor back.
+    clearCursor();
     if (scrollReportRaf !== null) cancelAnimationFrame(scrollReportRaf);
     window.removeEventListener('scroll', reportScrollPosition);
     try {

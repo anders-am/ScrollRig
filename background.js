@@ -111,9 +111,14 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-  if (tabId === targetTabId && changeInfo.status === 'loading' && changeInfo.url) {
+  if (tabId !== targetTabId) return;
+  if (changeInfo.status === 'loading' && changeInfo.url) {
     // Navigated — content script will reinject automatically on same/any origin.
     notifyPanel({ type: 'TAB_NAVIGATED', url: changeInfo.url });
+  }
+  if (changeInfo.status === 'complete') {
+    // Fresh page, fresh content script with no cursor state — re-push it.
+    applyCursorToTab(tabId);
   }
 });
 
@@ -123,13 +128,40 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   if (!tab) return;
   // Don't rebind to the panel window itself.
   if (tab.windowId === panelWindowId) return;
+  if (tab.id === targetTabId) return; // already bound here
+  if (targetTabId !== null) clearCursorOnTab(targetTabId); // leave the old tab as we found it
   targetTabId = tabId;
   await ensureContentScript(tabId);
+  await applyCursorToTab(tabId);
   notifyPanel({ type: 'TAB_BOUND', tab: serializeTab(tab) });
 });
 
 function serializeTab(tab) {
   return { id: tab.id, title: tab.title, favIconUrl: tab.favIconUrl, url: tab.url };
+}
+
+// ── Custom cursor ──────────────────────────────────────────────────────────
+// Storage is the single source of truth; the content script is a dumb renderer.
+// The panel writes CURSOR_KEY and pings CURSOR_CHANGED; everything else reads
+// from here so the setting re-applies across navigation and rebinds.
+const CURSOR_KEY = 'cursor.v1';
+
+async function getCursorSettings() {
+  const data = await chrome.storage.local.get(CURSOR_KEY);
+  return data[CURSOR_KEY] || null;
+}
+
+async function applyCursorToTab(tabId) {
+  if (tabId === null || tabId === undefined) return;
+  const settings = await getCursorSettings();
+  if (!settings || !settings.enabled) return; // nothing to apply
+  await ensureContentScript(tabId);
+  chrome.tabs.sendMessage(tabId, { type: 'SET_CURSOR', settings }).catch(() => {});
+}
+
+function clearCursorOnTab(tabId) {
+  if (tabId === null || tabId === undefined) return;
+  chrome.tabs.sendMessage(tabId, { type: 'SET_CURSOR', settings: { enabled: false } }).catch(() => {});
 }
 
 function notifyPanel(message) {
@@ -149,8 +181,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           bound = tabs.find((t) => t.windowId !== panelWindowId) || null;
         }
         if (bound) {
+          if (targetTabId !== null && targetTabId !== bound.id) clearCursorOnTab(targetTabId);
           targetTabId = bound.id;
           await ensureContentScript(bound.id);
+          await applyCursorToTab(bound.id);
           sendResponse({ type: 'TAB_BOUND', tab: serializeTab(bound) });
         } else {
           sendResponse({ type: 'ERROR', message: 'No eligible tab to bind.' });
@@ -158,8 +192,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         break;
       }
       case 'UNBIND_TAB': {
+        if (targetTabId !== null) clearCursorOnTab(targetTabId);
         targetTabId = null;
         sendResponse({ type: 'TAB_UNBOUND' });
+        break;
+      }
+      case 'CURSOR_CHANGED': {
+        // Panel already wrote the new settings to storage. Push them straight to
+        // the bound tab — unconditionally, so toggling OFF actually clears it
+        // (applyCursorToTab short-circuits on disabled, which is only right for
+        // navigation/rebind where a fresh page is already clean).
+        if (targetTabId !== null) {
+          const settings = (await getCursorSettings()) || { enabled: false };
+          if (settings.enabled) await ensureContentScript(targetTabId);
+          chrome.tabs.sendMessage(targetTabId, { type: 'SET_CURSOR', settings }).catch(() => {});
+        }
+        sendResponse({ type: 'CURSOR_APPLIED' });
         break;
       }
       case 'GET_BOUND_TAB': {
