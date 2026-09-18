@@ -123,7 +123,7 @@ Then certify all three:
 Must be a publicly reachable URL. Once the repo is pushed, use the rendered file:
 
 ```
-https://github.com/YOUR_USERNAME/ScrollRig/blob/main/PRIVACY.md
+https://github.com/anders-am/ScrollRig/blob/main/PRIVACY.md
 ```
 
 ---

@@ -14,7 +14,7 @@ ScrollRig isn't in the Chrome Web Store yet, so you install it manually. Takes a
 
 1. **Download the code.** Either clone it:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/ScrollRig.git
+   git clone https://github.com/anders-am/ScrollRig.git
    ```
    or click **Code → Download ZIP** on GitHub and unzip it somewhere you won't accidentally delete. Chrome loads the extension from this folder every time it starts, so don't put it in Downloads.
 

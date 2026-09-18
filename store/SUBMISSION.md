@@ -60,7 +60,7 @@ Take them at 1280×800 exactly. A macOS trick: `⌘⇧4`, press Space, click the
 - [ ] **Upload** `dist/scrollrig-1.0.0.zip`
 - [ ] **Store listing** — name, summary, detailed description, category, language, screenshots, promo tile ([LISTING.md](LISTING.md))
 - [ ] **Privacy practices** — single purpose, a justification for each of the four permissions plus host permissions, "not using remote code", data-usage disclosures (tick nothing), all three certifications ([LISTING.md](LISTING.md))
-- [ ] **Privacy policy URL** — `https://github.com/YOUR_USERNAME/ScrollRig/blob/main/PRIVACY.md`
+- [ ] **Privacy policy URL** — `https://github.com/anders-am/ScrollRig/blob/main/PRIVACY.md`
 - [ ] **Distribution** — pick a visibility (below)
 
 ---
