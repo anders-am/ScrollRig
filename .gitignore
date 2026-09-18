@@ -1,0 +1,10 @@
+.DS_Store
+
+# Build output — regenerate with ./build.sh
+dist/
+
+# Internal process artifacts: design exploration and the original build plan.
+# Kept locally, left out of the repo — they reference client URLs used as sample
+# data, and the design canvas alone is a 2.5MB generated file.
+design/
+scroll-recorder-extension-plan.md

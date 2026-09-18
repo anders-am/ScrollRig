@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>ScrollRig</title>
+<link rel="stylesheet" href="panel.css" />
+</head>
+<body>
+
+  <header id="header">
+    <div class="tab-info">
+      <span id="status-dot" class="dot"></span>
+      <span id="tab-title">No tab bound</span>
+    </div>
+    <div class="head-actions">
+      <button id="btn-bind" class="mini">Bind</button>
+      <label class="follow"><input type="checkbox" id="chk-auto-follow" checked /> Follow</label>
+    </div>
+  </header>
+
+  <section class="readout">
+    <div class="label">Scroll Y</div>
+    <div class="readout-nums">
+      <span id="readout-position">0</span>
+      <span class="readout-max">/ <span id="readout-max">0</span></span>
+    </div>
+    <div class="meter"><div id="meter-fill"></div></div>
+  </section>
+
+  <nav id="tabs">
+    <button class="tab-btn active" data-tab="quick">Quick</button>
+    <button class="tab-btn" data-tab="capture">From&rarr;To</button>
+    <button class="tab-btn" data-tab="sequence">Sequence</button>
+  </nav>
+
+  <main id="panels">
+
+    <!-- ── Quick ───────────────────────────────────── -->
+    <section id="panel-quick" class="panel active">
+
+      <div class="field">
+        <div class="field-head"><span class="label">Distance</span><span class="unit">px</span></div>
+        <div class="opts" id="qs-distance" data-value="1000">
+          <button class="opt num" data-value="500">500</button>
+          <button class="opt num active" data-value="1000">1000</button>
+          <button class="opt num" data-value="2000">2000</button>
+          <button class="opt" data-value="viewport">Viewport</button>
+          <input class="opt num custom" type="text" inputmode="numeric" placeholder="Custom" />
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-head"><span class="label">Duration</span><span class="unit">ms</span></div>
+        <div class="opts" id="qs-duration" data-value="1000">
+          <button class="opt num" data-value="500">500</button>
+          <button class="opt num active" data-value="1000">1000</button>
+          <button class="opt num" data-value="2000">2000</button>
+          <button class="opt num" data-value="4000">4000</button>
+          <input class="opt num custom" type="text" inputmode="numeric" placeholder="Custom" />
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-head"><span class="label">Easing</span></div>
+        <div class="opts" id="qs-easing" data-value="easeInOut">
+          <button class="opt" data-value="linear">Linear</button>
+          <button class="opt" data-value="easeOut">Out</button>
+          <button class="opt active" data-value="easeInOut">In-Out</button>
+          <button class="opt" data-value="easeOutExpo">Expo</button>
+          <input class="opt custom wide" type="text" placeholder="Bezier" title="cubic-bezier, e.g. 0.25, 0.1, 0.25, 1" />
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-head"><span class="label">Direction</span></div>
+        <div class="opts" id="qs-direction" data-value="down">
+          <button class="opt active" data-value="down">Down &darr;</button>
+          <button class="opt" data-value="up">Up &uarr;</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── From → To ───────────────────────────────── -->
+    <section id="panel-capture" class="panel">
+
+      <div class="pair">
+        <div class="pair-cell">
+          <span class="label">Start</span>
+          <div class="pos-input">
+            <input class="opt num custom active pos" id="cap-start" type="text" inputmode="numeric" placeholder="—" />
+            <button class="crosshair" id="cap-now-start" type="button" title="Use current position" aria-label="Use current scroll position">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="2.6" stroke="currentColor" stroke-width="1"></circle><path d="M6 0.6V2.4M6 9.6V11.4M0.6 6H2.4M9.6 6H11.4" stroke="currentColor" stroke-width="1" stroke-linecap="round"></path></svg>
+            </button>
+          </div>
+        </div>
+        <div class="pair-cell">
+          <span class="label">End</span>
+          <div class="pos-input">
+            <input class="opt num custom active pos" id="cap-end" type="text" inputmode="numeric" placeholder="—" />
+            <button class="crosshair" id="cap-now-end" type="button" title="Use current position" aria-label="Use current scroll position">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="2.6" stroke="currentColor" stroke-width="1"></circle><path d="M6 0.6V2.4M6 9.6V11.4M0.6 6H2.4M9.6 6H11.4" stroke="currentColor" stroke-width="1" stroke-linecap="round"></path></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-head"><span class="label">Duration</span><span class="unit">ms</span></div>
+        <div class="opts" id="cap-duration" data-value="2000">
+          <button class="opt num" data-value="500">500</button>
+          <button class="opt num" data-value="1000">1000</button>
+          <button class="opt num active" data-value="2000">2000</button>
+          <button class="opt num" data-value="4000">4000</button>
+          <input class="opt num custom" type="text" inputmode="numeric" placeholder="Custom" />
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-head"><span class="label">Easing</span></div>
+        <div class="opts" id="cap-easing" data-value="easeInOut">
+          <button class="opt" data-value="linear">Linear</button>
+          <button class="opt" data-value="easeOut">Out</button>
+          <button class="opt active" data-value="easeInOut">In-Out</button>
+          <button class="opt" data-value="easeOutExpo">Expo</button>
+          <input class="opt custom wide" type="text" placeholder="Bezier" title="cubic-bezier, e.g. 0.25, 0.1, 0.25, 1" />
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">Marks</div>
+        <div class="list" id="marks-list"></div>
+        <div class="add-row">
+          <input type="text" id="mark-name" placeholder="Name this position" />
+          <button class="mini" id="mark-save">Save</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── Sequence ────────────────────────────────── -->
+    <section id="panel-sequence" class="panel">
+
+      <div class="seq-head">
+        <div class="seq-add">
+          <button class="mini" id="seq-add-scroll-to">+ To</button>
+          <button class="mini" id="seq-add-scroll">+ Scroll</button>
+          <button class="mini" id="seq-add-wait">+ Wait</button>
+          <button class="mini" id="seq-stagger">Stagger</button>
+        </div>
+      </div>
+
+      <div class="list" id="seq-list"></div>
+
+      <div class="seq-foot">
+        <label class="follow"><input type="checkbox" id="chk-loop" /> Loop</label>
+        <select id="sel-speed" title="Speed multiplier">
+          <option value="0.5">0.5&times;</option>
+          <option value="1" selected>1&times;</option>
+          <option value="2">2&times;</option>
+        </select>
+      </div>
+
+      <div class="section">
+        <div class="section-label">Presets</div>
+        <div class="list" id="preset-list"></div>
+        <div class="add-row">
+          <input type="text" id="preset-name" placeholder="Name this sequence" />
+          <button class="mini" id="preset-save">Save</button>
+        </div>
+        <div class="add-row">
+          <button class="mini" id="preset-export">Export</button>
+          <button class="mini" id="preset-import">Import</button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <div class="actions">
+    <button class="run" id="btn-run" disabled>
+      <svg width="9" height="11" viewBox="0 0 9 11" fill="none"><path d="M1 1L8 5.5L1 10V1Z" fill="#FFFFFF"></path></svg>
+      <span id="run-label">Run scroll</span>
+    </button>
+    <button class="stop-link" id="btn-stop" type="button">Reset / Stop</button>
+  </div>
+
+  <div id="stagger-modal" class="modal hidden">
+    <div class="modal-card">
+      <div class="section-label">Staggered scroll</div>
+      <div class="modal-field"><span class="label">Total px</span><input type="text" inputmode="numeric" id="stg-total" value="2000" /></div>
+      <div class="modal-field"><span class="label">Steps</span><input type="text" inputmode="numeric" id="stg-steps" value="5" /></div>
+      <div class="modal-field"><span class="label">Each ms</span><input type="text" inputmode="numeric" id="stg-duration" value="600" /></div>
+      <div class="modal-field"><span class="label">Pause ms</span><input type="text" inputmode="numeric" id="stg-pause" value="800" /></div>
+      <div class="modal-actions">
+        <button class="mini" id="stg-cancel">Cancel</button>
+        <button class="mini" id="stg-generate">Generate</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="hidden"></div>
+
+  <script src="panel.js"></script>
+</body>
+</html>

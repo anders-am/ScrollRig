@@ -1,0 +1,577 @@
+:root {
+  --fg: #FFFFFF;
+  --bg: #090909;
+  --t75: rgba(255, 255, 255, 0.75);  /* 11.1:1 — secondary text */
+  --t50: rgba(255, 255, 255, 0.5);   /*  5.3:1 — smallest text that still passes AA */
+  --t40: rgba(255, 255, 255, 0.4);   /*  3.8:1 — borders and rules only, never text */
+  --rule: #1D1D1D;
+  --ok: #5BD18A;
+  --warn: #F2A35E;
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+body { display: flex; flex-direction: column; }
+
+::selection { background: var(--t50); }
+
+:focus-visible { outline: 1px solid var(--fg); outline-offset: 3px; }
+
+/* ── Header ─────────────────────────────────────────── */
+
+#header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 17px 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.tab-info { display: flex; align-items: center; gap: 9px; min-width: 0; }
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ok);
+  flex: 0 0 auto;
+}
+
+.dot.lost { background: var(--warn); }
+
+#tab-title {
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  color: var(--t75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.head-actions { display: flex; align-items: center; gap: 16px; flex: 0 0 auto; }
+
+.follow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--t50);
+  cursor: pointer;
+  user-select: none;
+}
+
+.follow input {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 11px;
+  height: 11px;
+  border: 1px solid var(--t40);
+  background: none;
+  cursor: pointer;
+}
+
+.follow input:checked { background: var(--fg); border-color: var(--fg); }
+.follow:hover { color: var(--fg); }
+
+/* ── Scroll readout ─────────────────────────────────── */
+
+.readout {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 30px 18px 24px;
+}
+
+.readout-nums { display: flex; align-items: baseline; gap: 12px; }
+
+#readout-position {
+  font-size: 42px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -1.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+}
+
+.readout-max {
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  font-variant-numeric: tabular-nums;
+  color: var(--t50);
+}
+
+.meter { display: flex; height: 2px; background: var(--rule); }
+#meter-fill { width: 0%; background: var(--t75); transition: width 0.1s linear; }
+
+/* ── Tabs ───────────────────────────────────────────── */
+
+#tabs {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 26px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: inherit;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--t50);
+  padding: 0 0 14px;
+  cursor: pointer;
+}
+
+.tab-btn:hover { color: var(--fg); }
+.tab-btn.active { color: var(--fg); border-bottom-color: var(--fg); }
+
+/* ── Panels ─────────────────────────────────────────── */
+
+#panels { flex: 1 1 auto; overflow-y: auto; padding: 0 18px; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── Field: label on top, options underneath ────────── */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 26px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.field:last-child { border-bottom: none; }
+
+.field-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.label, .unit {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--t50);
+}
+
+.opts { display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px 20px; }
+
+.opt {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--t50);
+  padding: 3px 0 5px;
+  border-bottom: 1px solid transparent;
+  cursor: pointer;
+}
+
+.opt.num { letter-spacing: 0.5px; text-transform: none; font-variant-numeric: tabular-nums; }
+.opt:hover { color: var(--fg); }
+.opt.active { color: var(--fg); font-weight: 500; }
+
+/* The last slot in a row: type your own. Dashed = editable. */
+input.opt {
+  width: 8ch;
+  border-bottom: 1px dashed var(--t40);
+  cursor: text;
+  text-align: left;
+}
+
+input.opt.wide { width: 14ch; }
+input.opt::placeholder { color: var(--t50); text-transform: uppercase; letter-spacing: 1.2px; }
+input.opt:focus { color: var(--fg); border-bottom-color: var(--fg); border-bottom-style: solid; }
+input.opt.active { color: var(--fg); font-weight: 500; }
+input.opt.invalid { color: var(--warn); border-bottom-color: var(--warn); }
+
+/* ── Start / End pair ───────────────────────────────── */
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  padding: 26px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.pair-cell { display: flex; flex-direction: column; gap: 15px; }
+
+/* Position input: the value and the crosshair share one underline that runs
+   the full width of the field. Click the crosshair to grab the live scroll
+   position instead of typing one. */
+.pos-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Higher specificity than input.opt / .step-field input so the field owns
+   its full track in both contexts. */
+.pos-input input.pos {
+  width: 100%;
+  padding-right: 24px;
+}
+
+/* A step row can't stretch, so the field gets a fixed track there. */
+.step-field .pos-input { width: 12ch; }
+
+.crosshair {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  background: none;
+  border: none;
+  color: var(--t40);
+  padding: 0;
+  cursor: pointer;
+}
+
+.crosshair:hover { color: var(--fg); }
+
+/* ── Action bar ─────────────────────────────────────── */
+
+.actions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border-top: 1px solid var(--rule);
+}
+
+.run {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  height: 48px;
+  background: none;
+  border: 1px solid var(--t40);
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.run:hover:not(:disabled) { border-color: var(--fg); }
+.run:disabled { color: var(--t50); border-color: var(--rule); cursor: not-allowed; }
+.run:disabled svg path { fill: rgba(255, 255, 255, 0.5); }
+
+.stop-link {
+  display: block;
+  margin: 0 auto;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--t50);
+  padding: 4px 0 0;
+  cursor: pointer;
+}
+
+.stop-link:hover { color: var(--warn); }
+
+/* ── Lists (marks, presets) ─────────────────────────── */
+
+.list { display: flex; flex-direction: column; }
+
+.list-empty {
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  color: var(--t50);
+  padding: 14px 0;
+}
+
+.list-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.list-item:last-child { border-bottom: none; }
+.list-name { font-size: 13px; letter-spacing: 0.3px; color: var(--fg); }
+.list-meta { display: flex; align-items: baseline; gap: 16px; }
+
+.list-value {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--t50);
+}
+
+.mini {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--t50);
+  padding: 3px 0;
+  cursor: pointer;
+}
+
+.mini:hover { color: var(--fg); }
+.mini.danger:hover { color: var(--warn); }
+
+.add-row { display: flex; align-items: baseline; gap: 16px; padding: 18px 0 0; }
+
+.add-row input {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 1px dashed var(--t40);
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  color: var(--fg);
+  padding: 3px 0 5px;
+}
+
+.add-row input::placeholder { color: var(--t50); text-transform: uppercase; letter-spacing: 1.2px; font-size: 11px; }
+.add-row input:focus { border-bottom-color: var(--fg); border-bottom-style: solid; }
+
+/* ── Sequence steps ─────────────────────────────────── */
+
+.seq-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 22px 0 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.seq-add { display: flex; gap: 10px; }
+
+/* These are the primary actions on the tab, so they get the same bordered
+   treatment as the big Run button — just smaller — instead of reading as
+   plain text like the inline Dup/Del/Go list actions. */
+.seq-add .mini {
+  border: 1px solid var(--t40);
+  border-radius: 2px;
+  padding: 5px 9px;
+}
+
+.seq-add .mini:hover {
+  color: var(--fg);
+  border-color: var(--fg);
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 0;
+  border-top: 1px solid var(--rule);
+  cursor: grab;
+}
+
+.step:first-child { border-top: none; }
+.step.dragging { opacity: 0.35; }
+
+/* Shows exactly where a dragged step will land. */
+.drop-indicator {
+  height: 2px;
+  margin: -1px 0;
+  background: var(--fg);
+  pointer-events: none;
+}
+.step.running { background: rgba(255, 255, 255, 0.05); }
+
+.step-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.step-title { display: flex; align-items: baseline; gap: 11px; }
+
+.step-index {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--t50);
+}
+
+.step-type {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--fg);
+}
+
+.step-actions { display: flex; gap: 16px; }
+
+.step-fields { display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px 20px; }
+
+.step-field { display: flex; align-items: baseline; gap: 8px; }
+
+.step-field > span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--t50);
+}
+
+.step-field input, .step-field select {
+  background: none;
+  border: none;
+  border-bottom: 1px dashed var(--t40);
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+  padding: 2px 0 4px;
+  cursor: pointer;
+}
+
+.step-field input { width: 7ch; cursor: text; }
+.step-field input:focus, .step-field select:focus { border-bottom-color: var(--fg); border-bottom-style: solid; }
+.step-field select option { background: var(--bg); color: var(--fg); }
+
+.seq-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 0 0;
+  border-top: 1px solid var(--rule);
+}
+
+.seq-foot select {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--t75);
+  cursor: pointer;
+}
+
+.seq-foot select option { background: var(--bg); }
+
+.section {
+  padding: 28px 0 0;
+  border-top: 1px solid var(--rule);
+  margin-top: 26px;
+}
+
+.section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--t50);
+  padding-bottom: 10px;
+}
+
+/* ── Modal ──────────────────────────────────────────── */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 9, 9, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 100;
+}
+
+.modal.hidden { display: none; }
+
+.modal-card {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.modal-field { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+
+.modal-field input {
+  width: 8ch;
+  background: none;
+  border: none;
+  border-bottom: 1px dashed var(--t40);
+  font-family: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+  text-align: right;
+  padding: 3px 0 5px;
+}
+
+.modal-field input:focus { border-bottom-color: var(--fg); border-bottom-style: solid; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 22px; padding-top: 6px; }
+
+/* ── Toast ──────────────────────────────────────────── */
+
+#toast {
+  position: fixed;
+  left: 18px;
+  right: 18px;
+  bottom: 96px;
+  background: var(--bg);
+  border: 1px solid var(--t40);
+  padding: 13px 14px;
+  font-size: 12px;
+  line-height: 1.6;
+  letter-spacing: 0.3px;
+  color: var(--fg);
+  z-index: 200;
+}
+
+#toast.hidden { display: none; }
+#toast.warn { border-color: var(--warn); color: var(--warn); }
+
+/* ── Scrollbar ──────────────────────────────────────── */
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-thumb { background: var(--rule); }
+::-webkit-scrollbar-track { background: transparent; }
