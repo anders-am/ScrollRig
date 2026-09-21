@@ -149,6 +149,10 @@
   }
 
   async function initBinding() {
+    // autoFollow lives in the worker and now survives its restarts, so read it
+    // back rather than trusting the checkbox's markup default.
+    const af = await chrome.runtime.sendMessage({ type: 'GET_AUTO_FOLLOW' }).catch(() => null);
+    if (af && typeof af.value === 'boolean') $('chk-auto-follow').checked = af.value;
     const res = await send('GET_BOUND_TAB');
     if (res && res.type === 'TAB_BOUND') await updateTabUI(res.tab);
     else await bindActiveTab();

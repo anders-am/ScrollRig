@@ -2,9 +2,40 @@
 // Opens the panel, tracks the bound tab, relays messages between panel and content script,
 // handles keyboard shortcuts.
 
+// This is an MV3 service worker: Chrome tears it down after ~30s idle and on
+// system sleep, which wipes every module-level variable. These three describe
+// live, persistent state (a cursor painted onto a page, a panel window on
+// screen), so keeping them only in memory meant a restart orphaned whatever
+// they were tracking. They're cached here but backed by chrome.storage.session,
+// which survives SW restarts and clears on browser restart — exactly the
+// lifetime we want. Every entry point must `await loadState()` before reading.
 let targetTabId = null;
 let panelWindowId = null;
 let autoFollow = true;
+
+const STATE_KEY = 'session.state.v1';
+let statePromise = null;
+
+function loadState() {
+  if (!statePromise) {
+    statePromise = (async () => {
+      const stored = await chrome.storage.session.get(STATE_KEY);
+      const s = stored[STATE_KEY];
+      if (s) {
+        targetTabId = s.targetTabId ?? null;
+        panelWindowId = s.panelWindowId ?? null;
+        autoFollow = s.autoFollow ?? true;
+      }
+    })();
+  }
+  return statePromise;
+}
+
+async function saveState() {
+  await chrome.storage.session.set({
+    [STATE_KEY]: { targetTabId, panelWindowId, autoFollow },
+  });
+}
 
 // Bumped key: the panel's layout got taller, so stored bounds from the old
 // design would clip it. A new key resets saved bounds once.
@@ -40,13 +71,27 @@ async function ensureContentScript(tabId) {
 // once they next navigate, so seed them now — otherwise the extension looks dead
 // on every already-open tab until it's reloaded.
 chrome.runtime.onInstalled.addListener(async () => {
+  // Stale bookkeeping from a previous version shouldn't describe this one.
+  await chrome.storage.session.remove(STATE_KEY).catch(() => {});
   const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
   await Promise.all(tabs.map((tab) => ensureContentScript(tab.id)));
+  // Nothing is bound yet on a fresh start, so no page should be wearing a
+  // cursor. This also clears any left stranded by an older build.
+  await clearCursorEverywhere();
 });
 
 async function getSavedBounds() {
   const stored = await chrome.storage.local.get(BOUNDS_KEY);
-  return stored[BOUNDS_KEY] || DEFAULT_BOUNDS;
+  const bounds = stored[BOUNDS_KEY] || DEFAULT_BOUNDS;
+  // Bounds saved while the panel sat on a second monitor point nowhere once that
+  // monitor is gone — the window then opens offscreen and looks like nothing
+  // happened. Only discard values that can't be on any real display; a modest
+  // negative offset is legitimate for a monitor left of the primary one.
+  const offscreen =
+    (bounds.left !== undefined && (bounds.left < -3000 || bounds.left > 10000)) ||
+    (bounds.top !== undefined && (bounds.top < -3000 || bounds.top > 10000));
+  if (offscreen) return { width: bounds.width, height: bounds.height };
+  return bounds;
 }
 
 async function saveBounds(bounds) {
@@ -54,13 +99,23 @@ async function saveBounds(bounds) {
 }
 
 async function openPanel(initialTab) {
-  if (panelWindowId !== null) {
-    try {
-      await chrome.windows.update(panelWindowId, { focused: true });
-      return;
-    } catch {
-      panelWindowId = null; // window was closed externally; fall through to recreate
-    }
+  await loadState();
+
+  // Reuse an existing panel. After a SW restart panelWindowId is gone, so also
+  // look the window up by URL — without this, clicking the icon spawned a second
+  // panel (often offscreen, so it read as "nothing opened") and leaked the first.
+  let existingId = null;
+  if (panelWindowId !== null && (await chrome.windows.get(panelWindowId).catch(() => null))) {
+    existingId = panelWindowId;
+  } else {
+    existingId = await findPanelWindowId();
+  }
+
+  if (existingId !== null) {
+    panelWindowId = existingId;
+    await saveState();
+    await chrome.windows.update(existingId, { focused: true, state: 'normal' }).catch(() => {});
+    return;
   }
 
   const bounds = await getSavedBounds();
@@ -80,19 +135,27 @@ async function openPanel(initialTab) {
     targetTabId = initialTab.id;
     await ensureContentScript(initialTab.id);
   }
+  await saveState();
 }
 
 chrome.action.onClicked.addListener(async (tab) => {
   await openPanel(tab);
 });
 
-chrome.windows.onRemoved.addListener((windowId) => {
+chrome.windows.onRemoved.addListener(async (windowId) => {
+  await loadState();
   if (windowId === panelWindowId) {
     panelWindowId = null;
+    targetTabId = null;
+    await saveState();
+    // The panel is the only way to switch the cursor off, so leaving it painted
+    // on a page after the panel closes strands the user with no control.
+    await clearCursorEverywhere();
   }
 });
 
 chrome.windows.onBoundsChanged.addListener(async (window) => {
+  await loadState();
   if (window.id === panelWindowId) {
     await saveBounds({
       width: window.width,
@@ -103,14 +166,17 @@ chrome.windows.onBoundsChanged.addListener(async (window) => {
   }
 });
 
-chrome.tabs.onRemoved.addListener((tabId) => {
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  await loadState();
   if (tabId === targetTabId) {
     targetTabId = null;
+    await saveState();
     notifyPanel({ type: 'TAB_LOST', reason: 'closed' });
   }
 });
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
+  await loadState();
   if (tabId !== targetTabId) return;
   if (changeInfo.status === 'loading' && changeInfo.url) {
     // Navigated — content script will reinject automatically on same/any origin.
@@ -123,14 +189,22 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
 });
 
 chrome.tabs.onActivated.addListener(async ({ tabId }) => {
+  await loadState();
   if (!autoFollow) return;
+  // Auto-follow only means anything while the panel is open. Without this the
+  // extension kept binding — and painting the cursor onto — every tab the user
+  // clicked long after they'd closed the panel.
+  if (!(await panelIsOpen())) return;
   const tab = await chrome.tabs.get(tabId).catch(() => null);
   if (!tab) return;
   // Don't rebind to the panel window itself.
   if (tab.windowId === panelWindowId) return;
   if (tab.id === targetTabId) return; // already bound here
-  if (targetTabId !== null) clearCursorOnTab(targetTabId); // leave the old tab as we found it
   targetTabId = tabId;
+  await saveState();
+  // Sweep rather than clearing just the previous tab: self-heals any cursor
+  // stranded by an earlier restart instead of leaving it painted forever.
+  await clearCursorEverywhere(tabId);
   await ensureContentScript(tabId);
   await applyCursorToTab(tabId);
   notifyPanel({ type: 'TAB_BOUND', tab: serializeTab(tab) });
@@ -159,9 +233,46 @@ async function applyCursorToTab(tabId) {
   chrome.tabs.sendMessage(tabId, { type: 'SET_CURSOR', settings }).catch(() => {});
 }
 
-function clearCursorOnTab(tabId) {
-  if (tabId === null || tabId === undefined) return;
-  chrome.tabs.sendMessage(tabId, { type: 'SET_CURSOR', settings: { enabled: false } }).catch(() => {});
+// Clearing only the one tab we *think* we cursored is too fragile: if that
+// bookkeeping is ever lost, the cursor is stranded on a page with no way to
+// remove it. Sweeping every tab makes the invariant "at most one tab has a
+// cursor" self-healing, and costs one message per tab that already has a
+// content script. Tabs without one reject the message and are skipped.
+async function clearCursorEverywhere(exceptTabId = null) {
+  const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
+  await Promise.all(
+    tabs.map((tab) => {
+      if (tab.id === exceptTabId || tab.id === undefined) return null;
+      return chrome.tabs
+        .sendMessage(tab.id, { type: 'SET_CURSOR', settings: { enabled: false } })
+        .catch(() => {});
+    })
+  );
+}
+
+// The panel window may still be on screen after the SW restarted and forgot its
+// id. Find it by its URL rather than creating a second one.
+async function findPanelWindowId() {
+  const tabs = await chrome.tabs.query({ url: chrome.runtime.getURL('panel.html') });
+  return tabs.length > 0 ? tabs[0].windowId : null;
+}
+
+async function panelIsOpen() {
+  if (panelWindowId !== null) {
+    const win = await chrome.windows.get(panelWindowId).catch(() => null);
+    if (win) return true;
+  }
+  const found = await findPanelWindowId();
+  if (found !== null) {
+    panelWindowId = found;
+    await saveState();
+    return true;
+  }
+  if (panelWindowId !== null) {
+    panelWindowId = null;
+    await saveState();
+  }
+  return false;
 }
 
 function notifyPanel(message) {
@@ -171,6 +282,7 @@ function notifyPanel(message) {
 // Message router: panel <-> content script, plus direct background commands.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
+    await loadState();
     switch (message.type) {
       case 'BIND_ACTIVE_TAB': {
         const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
@@ -181,8 +293,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           bound = tabs.find((t) => t.windowId !== panelWindowId) || null;
         }
         if (bound) {
-          if (targetTabId !== null && targetTabId !== bound.id) clearCursorOnTab(targetTabId);
           targetTabId = bound.id;
+          await saveState();
+          await clearCursorEverywhere(bound.id);
           await ensureContentScript(bound.id);
           await applyCursorToTab(bound.id);
           sendResponse({ type: 'TAB_BOUND', tab: serializeTab(bound) });
@@ -192,8 +305,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         break;
       }
       case 'UNBIND_TAB': {
-        if (targetTabId !== null) clearCursorOnTab(targetTabId);
         targetTabId = null;
+        await saveState();
+        await clearCursorEverywhere();
         sendResponse({ type: 'TAB_UNBOUND' });
         break;
       }
@@ -202,9 +316,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // the bound tab — unconditionally, so toggling OFF actually clears it
         // (applyCursorToTab short-circuits on disabled, which is only right for
         // navigation/rebind where a fresh page is already clean).
-        if (targetTabId !== null) {
-          const settings = (await getCursorSettings()) || { enabled: false };
-          if (settings.enabled) await ensureContentScript(targetTabId);
+        const settings = (await getCursorSettings()) || { enabled: false };
+        if (!settings.enabled) {
+          // Turning it off sweeps every tab, not just the bound one, so a cursor
+          // stranded on some other tab can always be cleared from the panel.
+          await clearCursorEverywhere();
+        } else if (targetTabId !== null) {
+          await ensureContentScript(targetTabId);
           chrome.tabs.sendMessage(targetTabId, { type: 'SET_CURSOR', settings }).catch(() => {});
         }
         sendResponse({ type: 'CURSOR_APPLIED' });
@@ -218,14 +336,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const tab = await chrome.tabs.get(targetTabId).catch(() => null);
         if (!tab) {
           targetTabId = null;
+          await saveState();
           sendResponse({ type: 'TAB_UNBOUND' });
         } else {
           sendResponse({ type: 'TAB_BOUND', tab: serializeTab(tab) });
         }
         break;
       }
+      case 'GET_AUTO_FOLLOW': {
+        sendResponse({ type: 'AUTO_FOLLOW', value: autoFollow });
+        break;
+      }
       case 'SET_AUTO_FOLLOW': {
         autoFollow = !!message.value;
+        await saveState();
         sendResponse({ type: 'AUTO_FOLLOW_SET', value: autoFollow });
         break;
       }
