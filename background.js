@@ -82,20 +82,46 @@ chrome.runtime.onInstalled.addListener(async () => {
 
 async function getSavedBounds() {
   const stored = await chrome.storage.local.get(BOUNDS_KEY);
-  const bounds = stored[BOUNDS_KEY] || DEFAULT_BOUNDS;
-  // Bounds saved while the panel sat on a second monitor point nowhere once that
-  // monitor is gone — the window then opens offscreen and looks like nothing
-  // happened. Only discard values that can't be on any real display; a modest
-  // negative offset is legitimate for a monitor left of the primary one.
-  const offscreen =
-    (bounds.left !== undefined && (bounds.left < -3000 || bounds.left > 10000)) ||
-    (bounds.top !== undefined && (bounds.top < -3000 || bounds.top > 10000));
-  if (offscreen) return { width: bounds.width, height: bounds.height };
-  return bounds;
+  return stored[BOUNDS_KEY] || DEFAULT_BOUNDS;
 }
 
 async function saveBounds(bounds) {
   await chrome.storage.local.set({ [BOUNDS_KEY]: bounds });
+}
+
+// Chrome refuses windows.create outright — it throws rather than clamping —
+// when the requested bounds aren't at least 50% on a visible display. Saved
+// coordinates go stale whenever a monitor is unplugged or the resolution
+// changes, and guessing which coordinates are valid isn't possible without the
+// system.display permission. So let Chrome arbitrate: try the saved position,
+// and on rejection drop it and let Chrome place the window itself.
+async function createPanelWindow(bounds) {
+  const base = {
+    url: chrome.runtime.getURL('panel.html'),
+    type: 'popup',
+    width: bounds.width || DEFAULT_BOUNDS.width,
+    height: bounds.height || DEFAULT_BOUNDS.height,
+  };
+
+  if (bounds.left !== undefined && bounds.top !== undefined) {
+    try {
+      return await chrome.windows.create({ ...base, left: bounds.left, top: bounds.top });
+    } catch {
+      // Stale position — forget it so the next open doesn't repeat this.
+      await chrome.storage.local
+        .set({ [BOUNDS_KEY]: { width: base.width, height: base.height } })
+        .catch(() => {});
+    }
+  }
+
+  try {
+    return await chrome.windows.create(base);
+  } catch {
+    // Even the size was rejected (absurd stored dimensions). Fall back to stock.
+    return chrome.windows
+      .create({ ...base, width: DEFAULT_BOUNDS.width, height: DEFAULT_BOUNDS.height })
+      .catch(() => null);
+  }
 }
 
 async function openPanel(initialTab) {
@@ -119,16 +145,8 @@ async function openPanel(initialTab) {
   }
 
   const bounds = await getSavedBounds();
-  const createOpts = {
-    url: chrome.runtime.getURL('panel.html'),
-    type: 'popup',
-    width: bounds.width,
-    height: bounds.height,
-  };
-  if (bounds.left !== undefined) createOpts.left = bounds.left;
-  if (bounds.top !== undefined) createOpts.top = bounds.top;
-
-  const win = await chrome.windows.create(createOpts);
+  const win = await createPanelWindow(bounds);
+  if (!win) return; // couldn't open at all; nothing to record
   panelWindowId = win.id;
 
   if (initialTab && initialTab.id) {

@@ -19,12 +19,12 @@ Use whichever Google account you want to own this long-term — transferring an 
 ./build.sh
 ```
 
-This produces `dist/scrollrig-1.1.1.zip` containing only what the extension needs — `manifest.json`, the three scripts, the panel, and the icons. The README, store docs and design files are deliberately excluded; shipping them would only enlarge the package and give reviewers more surface to question.
+This produces `dist/scrollrig-1.1.2.zip` containing only what the extension needs — `manifest.json`, the three scripts, the panel, and the icons. The README, store docs and design files are deliberately excluded; shipping them would only enlarge the package and give reviewers more surface to question.
 
 To check what's in the zip before uploading:
 
 ```bash
-unzip -l dist/scrollrig-1.1.1.zip
+unzip -l dist/scrollrig-1.1.2.zip
 ```
 
 ---
@@ -57,7 +57,7 @@ Take them at 1280×800 exactly. A macOS trick: `⌘⇧4`, press Space, click the
 
 ## 4. Fill in the dashboard
 
-- [ ] **Upload** `dist/scrollrig-1.1.1.zip`
+- [ ] **Upload** `dist/scrollrig-1.1.2.zip`
 - [ ] **Store listing** — name, summary, detailed description, category, language, screenshots, promo tile ([LISTING.md](LISTING.md))
 - [ ] **Privacy practices** — single purpose, a justification for each of the four permissions plus host permissions, "not using remote code", data-usage disclosures (tick nothing), all three certifications ([LISTING.md](LISTING.md))
 - [ ] **Privacy policy URL** — `https://github.com/anders-am/ScrollRig/blob/main/PRIVACY.md`
